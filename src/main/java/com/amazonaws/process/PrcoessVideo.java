@@ -4,21 +4,13 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Regions;
-import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
-import com.amazonaws.services.ec2.model.StartInstancesRequest;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.Tag;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.DeleteMessageRequest;
@@ -27,11 +19,12 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.util.EC2MetadataUtils;
 import com.amazonaws.util.IOUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
+import java.io.InputStreamReader;
 import java.util.List;
 
 import org.json.JSONObject;
@@ -107,18 +100,25 @@ public class PrcoessVideo {
 	                    save(fullObject.getObjectContent(), keyName);
 	                    
 	                    //TODO: process video from terminal
-	                    String predictionResult = "Dog : 50%"; //call command in terminal
-	                    		
+	                    String darknetCommand = "./darknet detector demo cfg/coco.data cfg/yolov3-tiny.cfg yolov3-tiny.weights " + keyName;
+	                    //String predictionResult = "Dog : 50%"; //call command in terminal
+	                    String[] bashScript = new String[] {"/bin/bash", "-c", darknetCommand, "with", "args"};
+	                    Process proc = new ProcessBuilder(bashScript).start();		
+	                    
+	                    // Read the output
+
+	                    BufferedReader reader =  
+	                          new BufferedReader(new InputStreamReader(proc.getInputStream()));
+
+	                    String line = "";
+	                    while((line = reader.readLine()) != null) {
+	                        System.out.print(line + "\n");
+	                    }
+	                    
 	                    
 	                    //upload result to s3
 	                    // Upload a file as a new object with ContentType and title specified.
-	                    PutObjectRequest request = new PutObjectRequest(outputBucketName, "{ " +  keyName + ", " + predictionResult + " }", new File(keyName));
-	                    List<Tag> tags = new ArrayList<Tag>();
-	                    
-	                    //ObjectMetadata metadata = new ObjectMetadata();
-	                    //metadata.setContentType("plain/text");
-	                    //metadata.addUserMetadata("x-amz-meta-title", "someTitle");
-	                    //request.setMetadata(metadata);
+	                    PutObjectRequest request = new PutObjectRequest(outputBucketName, "{ " +  keyName + ", result% }", new File(keyName));
 	                    s3Client.putObject(request);
 	                    
 			            // Delete a message

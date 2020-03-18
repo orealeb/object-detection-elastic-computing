@@ -20,7 +20,6 @@ public class UploadObject {
 	public static void main(String[] args) throws IOException {
         Regions clientRegion = Regions.US_EAST_1;
         String bucketName = "cse546input";
-        //String stringObjKeyName = "*** String object key name ***";
         String fileObjKeyName = "20200316_151914_HDR.jpg"; //pass filename and path as args
         String fileName = "C:\\Users\\Ore\\Downloads\\20200316_151914_HDR.jpg";
 
@@ -31,9 +30,6 @@ public class UploadObject {
                     .withRegion(clientRegion)
                     .build();
 
-            // Upload a text string as a new object.
-            //s3Client.putObject(bucketName, stringObjKeyName, "Uploaded String Object");
-
             // Upload a file as a new object with ContentType and title specified.
             PutObjectRequest request = new PutObjectRequest(bucketName, fileObjKeyName, new File(fileName));
             List<Tag> tags = new ArrayList<Tag>();
@@ -42,10 +38,6 @@ public class UploadObject {
             tags.add(new Tag("EC2", "i-06a964afe85584b03"));
             request.setTagging(new ObjectTagging(tags));
             
-            //ObjectMetadata metadata = new ObjectMetadata();
-            //metadata.setContentType("plain/text");
-            //metadata.addUserMetadata("x-amz-meta-title", "someTitle");
-            //request.setMetadata(metadata);
             s3Client.putObject(request);
         } catch (AmazonServiceException e) {
             // The call was transmitted successfully, but Amazon S3 couldn't process 
