@@ -1,3 +1,4 @@
+package com.amazonaws.upload;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.regions.Regions;
