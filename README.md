@@ -1,1 +1,1 @@
-# object-detection-elastic-computing
+# realtime-object-detection
