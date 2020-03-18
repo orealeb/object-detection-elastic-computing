@@ -86,10 +86,10 @@ public class GetSQSMessage {
 
 		                ec2.startInstances(request);
 			            
-			            // Delete a message
-			            System.out.println("Deleting a message.\n");
-			            String messageReceiptHandle = messages.get(0).getReceiptHandle();
-			            sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));		            
+			            // DON'T Delete a message
+			            //System.out.println("Deleting a message.\n");
+			            //String messageReceiptHandle = messages.get(0).getReceiptHandle();
+			            //sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));		            
 		            }
 		            System.out.println();
 	

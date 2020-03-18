@@ -4,7 +4,6 @@ import com.amazonaws.SdkClientException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.ObjectTagging;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.Tag;
@@ -16,7 +15,9 @@ import java.util.List;
 
 public class UploadObject {
 
-    public static void main(String[] args) throws IOException {
+    
+	
+	public static void main(String[] args) throws IOException {
         Regions clientRegion = Regions.US_EAST_1;
         String bucketName = "cse546input";
         //String stringObjKeyName = "*** String object key name ***";
