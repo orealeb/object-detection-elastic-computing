@@ -1,8 +1,6 @@
 package com.amazonaws.process;
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -27,31 +25,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 
-import org.json.JSONObject;
 
 public class PrcoessVideo {
 
     
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InterruptedException {
         Regions clientRegion = Regions.US_EAST_1;
         String bucketName = "cse546input";
-        String outputBucketName = "cse546Output";
+        String outputBucketName = "cse546output";
        
-        ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
-        try {
-            credentialsProvider.getCredentials();
-        } catch (Exception e) {
-            throw new AmazonClientException(
-                    "Cannot load the credentials from the credential profiles file. " +
-                    "Please make sure that your credentials file is at the correct " +
-                    "location (C:\\Users\\Ore\\.aws\\credentials), and is in valid format.",
-                    e);
-        }
-
         AmazonSQS sqs = AmazonSQSClientBuilder.standard()
-                .withCredentials(credentialsProvider)
-                .withRegion(Regions.US_EAST_1)
+                .withRegion(clientRegion)
                 .build();
         
         //This code expects that you have AWS credentials set up per:
@@ -77,18 +62,13 @@ public class PrcoessVideo {
 	                System.out.println("    MD5OfBody:     " + message.getMD5OfBody());
 	                System.out.println("    Body:          " + message.getBody());
 
-	                JSONObject obj = new JSONObject(message.getBody());
-	                String keyName = obj.getJSONArray("Records").getJSONObject(0).getJSONObject("s3").getJSONObject("object").getString("key");
-
-	                // Retrieve the object's tags.
-	                GetObjectTaggingRequest getTaggingRequest = new GetObjectTaggingRequest(bucketName,keyName );
-	                GetObjectTaggingResult getTagsResult = s3Client.getObjectTagging(getTaggingRequest);
-	                
+	                String keyName = message.getBody().split(":")[0];
+       
 	                //get instance id
-	                String instance_id = getTagsResult.getTagSet().get(0).getValue();//"i-06a964afe85584b03";
+	                String instance_id = message.getBody().split(":")[1];//"i-06a964afe85584b03";
 	                
 	                // if instance id == started instance, then download process video
-	                String currInstanceId = EC2MetadataUtils.getInstanceId();
+	                String currInstanceId = EC2MetadataUtils.getInstanceId(); 
 	                if(instance_id.equals(currInstanceId)) {
 	                	//download from s3
 	                    // Get an object and save its contents to file.
@@ -103,6 +83,7 @@ public class PrcoessVideo {
 	                    String darknetCommand = "./darknet detector demo cfg/coco.data cfg/yolov3-tiny.cfg yolov3-tiny.weights " + keyName;
 	                    //String predictionResult = "Dog : 50%"; //call command in terminal
 	                    String[] bashScript = new String[] {"/bin/bash", "-c", darknetCommand, "with", "args"};
+	                    System.out.println("Running Command $ " + darknetCommand);
 	                    Process proc = new ProcessBuilder(bashScript).start();		
 	                    
 	                    // Read the output
@@ -111,20 +92,26 @@ public class PrcoessVideo {
 	                          new BufferedReader(new InputStreamReader(proc.getInputStream()));
 
 	                    String line = "";
+	                    String prediction = "";
+
 	                    while((line = reader.readLine()) != null) {
+	                    	if(line.contains("%")) {
+	                    		prediction = line;
+	                    	}
 	                        System.out.print(line + "\n");
 	                    }
 	                    
+	                    proc.waitFor(); //make thread wait
 	                    
 	                    //upload result to s3
 	                    // Upload a file as a new object with ContentType and title specified.
-	                    PutObjectRequest request = new PutObjectRequest(outputBucketName, "{ " +  keyName + ", result% }", new File(keyName));
+	                    PutObjectRequest request = new PutObjectRequest(outputBucketName, "{ " +  keyName + ", " + prediction + " }", new File(keyName));
 	                    s3Client.putObject(request);
-	                    
+	                    System.out.println("Uploaded Result");
 			            // Delete a message
-			            System.out.println("Deleting a message.\n");
-			            String messageReceiptHandle = messages.get(0).getReceiptHandle();
-			            sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));		            
+			            //System.out.println("Deleting a message.\n");
+			            //String messageReceiptHandle = messages.get(0).getReceiptHandle();
+			            //sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));		            
 	                
 			            //TODO: call to terminal to shut down machine after 5 minutes
 	                }    

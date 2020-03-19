@@ -1,11 +1,8 @@
 package com.amazonaws.monitor;
 import java.util.List;
 
-import org.json.*;
-
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
@@ -15,38 +12,17 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.StartInstancesRequest;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
 
 public class GetSQSMessage {
 
     public static void main(String[] args) throws Exception {
 
-    	final String bucketName = "cse546input";
-
-        
-        ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
-        try {
-            credentialsProvider.getCredentials();
-        } catch (Exception e) {
-            throw new AmazonClientException(
-                    "Cannot load the credentials from the credential profiles file. " +
-                    "Please make sure that your credentials file is at the correct " +
-                    "location (C:\\Users\\Ore\\.aws\\credentials), and is in valid format.",
-                    e);
-        }
+        Regions clientRegion = Regions.US_EAST_1;
 
         AmazonSQS sqs = AmazonSQSClientBuilder.standard()
-                               .withCredentials(credentialsProvider)
-                               .withRegion(Regions.US_EAST_1)
-                               .build();
-        
-        AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
-                .withCredentials(credentialsProvider)
-                .withRegion(Regions.US_EAST_1)
+                .withRegion(clientRegion)
                 .build();
+
         try {
             // get a queue
             String myQueueUrl = "https://sqs.us-east-1.amazonaws.com/603754723521/Test";
@@ -65,15 +41,8 @@ public class GetSQSMessage {
 		                System.out.println("    MD5OfBody:     " + message.getMD5OfBody());
 		                System.out.println("    Body:          " + message.getBody());
 
-		                JSONObject obj = new JSONObject(message.getBody());
-		                String keyName = obj.getJSONArray("Records").getJSONObject(0).getJSONObject("s3").getJSONObject("object").getString("key");
-
-		                // Retrieve the object's tags.
-		                GetObjectTaggingRequest getTaggingRequest = new GetObjectTaggingRequest(bucketName,keyName );
-		                GetObjectTaggingResult getTagsResult = s3Client.getObjectTagging(getTaggingRequest);
-		                
 		                //get instance id
-		                String instance_id = getTagsResult.getTagSet().get(0).getValue();//"i-06a964afe85584b03";
+		                String instance_id = message.getBody().split(":")[1];
 		                
 			            //start ec2 instance if it is off
 		                final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
@@ -82,11 +51,6 @@ public class GetSQSMessage {
 		                    .withInstanceIds(instance_id);
 
 		                ec2.startInstances(request);
-			            
-			            // DON'T Delete a message
-			            //System.out.println("Deleting a message.\n");
-			            //String messageReceiptHandle = messages.get(0).getReceiptHandle();
-			            //sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));		            
 		            }
 		            System.out.println();
 	
