@@ -33,7 +33,7 @@ import java.util.TimerTask;
 public class EC2Controller {
 
     
-    // Create timer and schedule shutdown after 5 minutes
+    // Create timer and schedule shutdown after 2 minutes
     static Timer timer = new Timer();  
     
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -151,7 +151,7 @@ public class EC2Controller {
       	  public void run() {
       		  stopInstance(instance_id);				            		  
       	  }
-      	}, 3*60*1000);	
+      	}, 2*60*1000);	
 	}
 
 	private static void stopInstance(String instance_id) {
