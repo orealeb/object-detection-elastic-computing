@@ -9,4 +9,3 @@ echo "newfile" >  EC2Controller.jar
 echo "newfile" >  startup.sh
 chmod u+x startup.sh
 echo "newfile" >  cronrun.log
-  
