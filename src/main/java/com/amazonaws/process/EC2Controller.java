@@ -9,6 +9,7 @@ import com.amazonaws.services.ec2.model.StopInstancesRequest;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.sqs.AmazonSQS;
@@ -20,15 +21,19 @@ import com.amazonaws.util.EC2MetadataUtils;
 import com.amazonaws.util.IOUtils;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 public class EC2Controller {
 
@@ -70,6 +75,11 @@ public class EC2Controller {
 							// Reset timer and wait until this finishes running to start again.
 							pauseTimer();
 
+							// Delete message from queue.
+							System.out.println("Deleting message.\n");
+							String messageReceiptHandle = message.getReceiptHandle();
+							sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));
+
 							// Get an object from s3 and save its contents to file.
 							downloadAndSave(s3Client, inputBucketName, keyName);
 
@@ -78,11 +88,6 @@ public class EC2Controller {
 
 							// Upload file and prediction to s3.
 							upload(s3Client, outputBucketName, keyName, prediction);
-
-							// Delete message from queue.
-							System.out.println("Deleting message.\n");
-							String messageReceiptHandle = message.getReceiptHandle();
-							sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));
 
 							// Restart timer.
 							timer = new Timer();
@@ -104,8 +109,14 @@ public class EC2Controller {
 	}
 
 	private static void upload(AmazonS3 s3Client, String bucketName, String keyName, String prediction) {
-		PutObjectRequest request = new PutObjectRequest(bucketName, "{ " + keyName + ", " + prediction + " }",
-				new File(keyName));
+		// create meta-data for your folder and set content-length to 0
+		ObjectMetadata metadata = new ObjectMetadata();
+		metadata.setContentLength(0);
+		
+		// create empty content
+		InputStream emptyContent = new ByteArrayInputStream(new byte[0]);
+		
+		PutObjectRequest request = new PutObjectRequest(bucketName, "{ " + keyName + ", " + prediction + " }", emptyContent, metadata);
 		s3Client.putObject(request);
 		System.out.println("Uploaded Result");
 	}
@@ -166,7 +177,9 @@ public class EC2Controller {
 
 	public static String executeCommand(String[] command) {
 		String line;
-		String resultat = "";
+		//results in hashmap
+		HashMap<String, String> map 
+        = new HashMap<>(); 
 		try {
 			ProcessBuilder builder;
 
@@ -175,17 +188,34 @@ public class EC2Controller {
 			builder.redirectErrorStream(true);
 			Process p = builder.start();
 			BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		
+			
 			while (true) {
 				line = r.readLine();
 				if (line == null) {
 					break;
 				}
-				resultat = line; // final prediction
+				if(line.contains("%") && line.split(":").length > 1) {
+					String pred = line.split(":")[0];
+					String accuracy = line.split(":")[1];
+					map.put(pred, accuracy); 
+				}
 				System.out.println(line);
 			}
 		} catch (IOException e) {
 			System.out.println("Exception = " + e.getMessage());
 		}
-		return resultat;
+		String result = map.entrySet().stream()
+				   .map(e -> encode(e.getKey()))
+				   .collect(Collectors.joining(", "));
+		return result;
+	}
+	
+	public static String encode(String s){
+	    try{
+	        return java.net.URLEncoder.encode(s, "UTF-8");
+	    } catch(UnsupportedEncodingException e){
+	        throw new IllegalStateException(e);
+	    }
 	}
 }
