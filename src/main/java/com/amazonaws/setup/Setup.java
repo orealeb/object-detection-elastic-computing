@@ -69,8 +69,8 @@ public class Setup {
 							
 							//transfer jar file
 							String[] bashScript2 = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", "C:\\Users\\Ore\\Downloads\\AWSCSE546.pem", "C:\\Users\\Ore\\eclipse-workspace\\Upload\\EC2Controller.jar", "ubuntu@"+destinationServer + ":/home/ubuntu/darknet/EC2Controller.jar" };
-							System.out.println("Running Command $ " + Arrays.toString(bashScript2));
-							executeCommand(bashScript2);
+							//System.out.println("Running Command $ " + Arrays.toString(bashScript2));
+							//executeCommand(bashScript2);
 							
 							//transfer start up script
 							String[] bashScript3 = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", "C:\\Users\\Ore\\Downloads\\AWSCSE546.pem", "C:\\Users\\Ore\\eclipse-workspace\\Upload\\startup.sh", "ubuntu@"+destinationServer + ":/home/ubuntu/darknet/startup.sh" };
