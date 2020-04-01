@@ -28,7 +28,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
@@ -53,6 +55,10 @@ public class EC2Controller {
 		AmazonS3 s3Client = AmazonS3ClientBuilder.standard().withRegion(clientRegion).build();
 
 		try {
+			//use timestamp to track execution times
+			String timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+			System.out.println("About to Receive Messages, Time " + timeStamp);
+			
 			// Receive messages.
 			System.out.println("Receiving messages from MyQueue.\n");
 			List<Message> messages;
@@ -63,6 +69,10 @@ public class EC2Controller {
 				if (messages.size() > 0) {
 					for (Message message : messages) {
 
+						//use timestamp to track execution times
+						timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+						System.out.println("About to process message, Time " + timeStamp);
+						
 						printMessage(message);
 
 						String keyName = message.getBody().split(":")[0];
@@ -72,23 +82,48 @@ public class EC2Controller {
 						String currInstanceId = EC2MetadataUtils.getInstanceId();
 
 						if (instance_id.equals(currInstanceId)) {
+							//use timestamp to track execution times
+							timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+							System.out.println("Current instance id == message id, Time " + timeStamp);
+							
 							// Reset timer and wait until this finishes running to start again.
 							pauseTimer();
 
+							//use timestamp to track execution times
+							timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+							System.out.println("Deleted Message, Time " + timeStamp);
+				
 							// Delete message from queue.
 							System.out.println("Deleting message.\n");
 							String messageReceiptHandle = message.getReceiptHandle();
 							sqs.deleteMessage(new DeleteMessageRequest(myQueueUrl, messageReceiptHandle));
 
+							//use timestamp to track execution times
+							timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+							System.out.println("About to download and save video, Time " + timeStamp);
+							
+					
 							// Get an object from s3 and save its contents to file.
 							downloadAndSave(s3Client, inputBucketName, keyName);
 
+							//use timestamp to track execution times
+							timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+							System.out.println("About to run darknet, Time " + timeStamp);
+				
 							// Run darknet command for object detection.
 							String prediction = performObjectDetection(keyName);
 
+							//use timestamp to track execution times
+							timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+							System.out.println("About to upload video, Time " + timeStamp);
+			
 							// Upload file and prediction to s3.
 							upload(s3Client, outputBucketName, keyName, prediction);
 
+							//use timestamp to track execution times
+							timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+							System.out.println("Finished uploading video, Time " + timeStamp);
+				
 							// Restart timer.
 							timer = new Timer();
 							restartTimer(currInstanceId);
@@ -153,6 +188,10 @@ public class EC2Controller {
 	}
 
 	private static void restartTimer(String instance_id) {
+		//use timestamp to track execution times
+		String timeStamp = new SimpleDateFormat("HH:mm:ss").format(Calendar.getInstance().getTime());
+		System.out.println("Swtiching off instance, Time " + timeStamp);
+
 		timer.schedule(new TimerTask() {
 			@Override
 			public void run() {

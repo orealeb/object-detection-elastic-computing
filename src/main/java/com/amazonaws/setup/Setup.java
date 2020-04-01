@@ -42,6 +42,10 @@ public class Setup {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		// Set required parameters
 		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
+		String credentialsFilePath = args[1];
+		String keyFilePath = args[0];
+		String startupScriptPath = args[3];
+		String ec2ControllerJarPath = args[2];
 
 		try {
 			//start instance before running scp commands
@@ -63,17 +67,17 @@ public class Setup {
 			        	if(!instance.getPublicDnsName().trim().equals("")) {
 				        	//-i C:\Users\Ore\Downloads\AWSCSE546.pem
 							String destinationServer = instance.getPublicDnsName(); //instance public DNS
-							String[] bashScript = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", "C:\\Users\\Ore\\Downloads\\AWSCSE546.pem", "C:\\Users\\Ore\\.aws\\credentials", "ubuntu@"+destinationServer + ":~/.aws/credentials" };
+							String[] bashScript = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", keyFilePath, credentialsFilePath, "ubuntu@"+destinationServer + ":~/.aws/credentials" };
 							System.out.println("Running Command $ " + Arrays.toString(bashScript));
 							executeCommand(bashScript);
 							
 							//transfer jar file
-							String[] bashScript2 = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", "C:\\Users\\Ore\\Downloads\\AWSCSE546.pem", "C:\\Users\\Ore\\eclipse-workspace\\Upload\\EC2Controller.jar", "ubuntu@"+destinationServer + ":/home/ubuntu/darknet/EC2Controller.jar" };
+							String[] bashScript2 = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", keyFilePath, ec2ControllerJarPath, "ubuntu@"+destinationServer + ":/home/ubuntu/darknet/EC2Controller.jar" };
 							//System.out.println("Running Command $ " + Arrays.toString(bashScript2));
 							//executeCommand(bashScript2);
 							
 							//transfer start up script
-							String[] bashScript3 = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", "C:\\Users\\Ore\\Downloads\\AWSCSE546.pem", "C:\\Users\\Ore\\eclipse-workspace\\Upload\\startup.sh", "ubuntu@"+destinationServer + ":/home/ubuntu/darknet/startup.sh" };
+							String[] bashScript3 = new String[] { "scp", "-o", "StrictHostKeyChecking=no", "-i", keyFilePath, startupScriptPath, "ubuntu@"+destinationServer + ":/home/ubuntu/darknet/startup.sh" };
 							//System.out.println("Running Command $ " + Arrays.toString(bashScript3));
 							//executeCommand(bashScript3);
 			        	}
